@@ -1,0 +1,34 @@
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+pymysql>=1.1
+pydantic>=2.6
+pydantic-settings>=2.2
+PyJWT>=2.8
+bcrypt>=4.1
+python-multipart>=0.0.9
+
+# ---- 云 LLM（财务审核 AI 助手）----
+# LLM_PROVIDER=qwen|glm|openai 时用它调用 OpenAI 兼容接口（同协议的异常与超时控制）。
+# 原先只是传递依赖，这里显式声明，避免干净安装后 AI 助手报 ImportError。
+httpx>=0.27
+
+# ---- PDF 发票支持 ----
+# 把上传的 PDF 拆成逐页 PNG 再走 OCR；自带 win_amd64 wheel（约 3.9MB），不需要 poppler 等外部二进制。
+# 许可 BSD-3/Apache-2.0（可商用）；刻意不用 AGPL 的 PyMuPDF。
+pypdfium2>=4,<6
+
+# ---- 发票影像缩略图 ----
+# GET /attachments/{id}/raw?thumb=N 用它把原图降采样成小 JPEG（列表页的 44px 缩略图不必传原图）。
+# 原先是 paddleocr 的传递依赖，这里显式声明，避免不装 OCR 时缩略图接口报错。
+Pillow>=10
+
+# ---- 真实 OCR（可选；OCR_PROVIDER=paddle 时才需要）----
+# 体积与网络：paddlepaddle 约 77MB + opencv 约 37MB + numpy 约 15MB + 其它依赖，合计约 250–350MB；
+# 首次识别会自动下载 检测/识别/方向分类 三个中文模型（几十 MB）到 ~/.paddleocr，之后完全本地离线推理。
+# 必须锁 2.x：本项目按 2.x API 调用（PaddleOCR(use_angle_cls=True, lang="ch") + .ocr(img, cls=True)）。
+# 安装：.venv\Scripts\python.exe -m pip install -r requirements.txt
+paddleocr>=2.7,<3.0
+paddlepaddle>=2.6,<3.0
+# paddle 2.x 不兼容 numpy 2.x（np.sctypes 等已移除），这里显式压住上限
+numpy>=1.24,<2
