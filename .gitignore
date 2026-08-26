@@ -24,3 +24,10 @@ backend/storage/
 .DS_Store
 Thumbs.db
 *.log
+
+# git 历史重建的备份与工作稿（本地产物，不入库）
+.git.bak-*/
+重建git历史.sh
+推送.sh
+阶段二设计方案.md
+项目验收报告.md
