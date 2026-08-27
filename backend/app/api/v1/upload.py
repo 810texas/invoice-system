@@ -1,14 +1,13 @@
-"""发票上传与 OCR 任务查询（需求 3.1：批量上传 + 自动识别）。"""
+"""发票上传与影像读取（需求 3.1：批量上传 + 自动识别）。"""
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, guard, guard_read
 from app.core.database import get_db
 from app.core.permissions import INVOICE_UPLOAD
 from app.core.security import file_sha256
-from app.models.document import Attachment, Invoice, OcrTask
+from app.models.document import Attachment, Invoice
 from app.models.user import User
 from app.services import ocr as ocr_service
 from app.services import pdf_pages
@@ -187,24 +186,3 @@ def attachment_raw(
         )
 
     return FileResponse(path, media_type=attachment.content_type)
-
-
-@router.get("/ocr/tasks")
-def tasks(db: Session = Depends(get_db), user: User = Depends(guard_read(INVOICE_UPLOAD))):
-    """OCR 任务进度：前端轮询排队/识别状态（需求 3.1）。"""
-    rows = db.execute(
-        select(OcrTask).order_by(OcrTask.id.desc()).limit(50)
-    ).scalars().all()
-    return [
-        {
-            "id": t.id,
-            "attachment_id": t.attachment_id,
-            "invoice_id": t.invoice_id,
-            "status": t.status,
-            "provider": t.provider,
-            "elapsed_ms": t.elapsed_ms,
-            "error": t.error,
-            "created_at": t.created_at,
-        }
-        for t in rows
-    ]
