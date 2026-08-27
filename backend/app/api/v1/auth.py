@@ -2,12 +2,15 @@
 
 公开接口（登录、注册、忘记密码、重置）按需求 5.2 的既有口径豁免 CSRF 双提交校验 ——
 它们本来就没有登录态可依附；代价是用**限流**来防刷（见 core/ratelimit.py）。
+
+**登出与续期不在这份豁免名单里**：它们携带登录态（Refresh Cookie），属于写操作，
+必须走 `require_csrf`。早先漏了这两处，任意站点都能用一张表单把用户强制登出。
 """
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from app.api.deps import current_user_with_csrf, get_current_user
+from app.api.deps import current_user_with_csrf, get_current_user, require_csrf
 from app.core import ratelimit
 from app.core.config import get_settings
 from app.core.database import get_db
@@ -222,8 +225,13 @@ def change_password(
 def refresh(
     response: Response,
     db: Session = Depends(get_db),
+    _csrf: None = Depends(require_csrf),
     refresh_token: str | None = Cookie(default=None, alias=settings.REFRESH_COOKIE),
 ):
+    """续期：同时校验 CSRF 双提交，避免被跨站静默续期（需求 5.2）。
+
+    前端 `refreshSession()` 已主动带 `X-CSRF-Token`，所以这里收紧不会破坏既有调用。
+    """
     if not refresh_token:
         raise HTTPException(status_code=401, detail="缺少 Refresh Token")
     access, new_refresh, user = auth_service.rotate(db, refresh_token)
@@ -243,8 +251,14 @@ def me(user: User = Depends(get_current_user)):
 def logout(
     response: Response,
     db: Session = Depends(get_db),
+    _csrf: None = Depends(require_csrf),
     refresh_token: str | None = Cookie(default=None, alias=settings.REFRESH_COOKIE),
 ):
+    """登出：写操作，同样走 CSRF 双提交（需求 5.2）。
+
+    原先是裸接口，任意站点都能用一张表单把用户强制登出（拒绝服务型 CSRF）；
+    前端 `api.logout()` 走统一的 axios 实例，请求头由拦截器注入，无需改动。
+    """
     auth_service.revoke(db, refresh_token, None)
     for name in (settings.ACCESS_COOKIE, settings.REFRESH_COOKIE, settings.CSRF_COOKIE):
         response.delete_cookie(name, path="/")
