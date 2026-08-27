@@ -85,6 +85,6 @@ cd ..\frontend && npm install && npx vite --port 5173 --strictPort              
 - **费用类别目前仅界面提示必填**，后端预审不强制；**写接口未限流**（需求 5.2 缺项）。
 - **OCR 同步执行**：生产部署应改为后台 Worker 进程池消费 `ocr_task` 表。
 - **公司主体与部门预算为占位值**，需按真实业务写入。
-- **已知偏差**：`/auth/logout`、`/auth/refresh` 未做 CSRF 双提交校验。
+- **CSRF**：写操作（含 `/auth/logout`、`/auth/refresh`）均已校验 CSRF 双提交 Token；仅登录/注册/忘记密码/重置这四个无登录态的公开接口豁免（改用限流防刷）。
 - **`scripts/e2e_check.py` 非幂等**（固定发票号），必须在清库后的库上执行；建议用独立库 `DB_NAME=invoice_system_e2e` 跑。
 - **安全提示**：演示密码与 `.env` 中的 `JWT_SECRET` 仅供开发使用，正式部署前必须更换；`.env` 与 `backend/storage/` 不入库。
