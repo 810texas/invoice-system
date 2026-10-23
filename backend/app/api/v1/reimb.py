@@ -123,6 +123,11 @@ def add_invoice(
     inv = db.get(Invoice, invoice_id)
     if inv is None:
         raise HTTPException(status_code=404, detail="发票不存在")
+    # 归属校验：只能使用**自己上传**的发票。
+    # 原先只判「是否已被别的单据占用」，导致未占用的他人发票可以被挂到自己单上
+    # （发票 id 是自增的，猜得到）—— 口径与 invoices.py 的 _owned_invoice 保持一致。
+    if inv.attachment.uploader_id != user.id:
+        raise HTTPException(status_code=403, detail="无权使用该发票")
     if inv.reimbursement_id and inv.reimbursement_id != reimb.id:
         raise HTTPException(status_code=400, detail="该发票已属于其他报销单")
     svc.attach_invoice(db, reimb, inv)

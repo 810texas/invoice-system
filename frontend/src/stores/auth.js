@@ -52,11 +52,17 @@ export const useAuthStore = defineStore('auth', {
       return this.user
     },
     async logout() {
+      // 登出可能失败（例如 CSRF Cookie 已丢失 → 服务端 403）。这不能把异常抛给调用方：
+      // AppLayout 是 `await auth.logout()` 之后才 router.push('/login')，一抛错就不跳转，
+      // 表现就是「点了退出登录没反应」。所以这里吞掉异常，本地登录态照样清空。
       try {
         await api.logout()
+      } catch {
+        // 忽略：即便服务端没清 Cookie，前端也会把用户送回登录页
       } finally {
         this.user = null
         setCsrfToken('')
+        this.loaded = true
       }
     },
   },

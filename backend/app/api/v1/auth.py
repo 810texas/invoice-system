@@ -72,7 +72,16 @@ def _set_auth_cookies(response: Response, access: str, refresh: str, csrf: str) 
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
         **COOKIE_COMMON,
     )
-    response.set_cookie(settings.CSRF_COOKIE, csrf, samesite="lax", path="/")
+    # 必须与 refresh 同生命周期：原先没写 max_age，浏览器把它当「会话 Cookie」，
+    # 重启浏览器后 csrf 消失而 access/refresh 还在 —— 于是所有写请求 403，
+    # 连 /auth/refresh 也因缺 CSRF 而 403，用户只能重新登录才能恢复。
+    response.set_cookie(
+        settings.CSRF_COOKIE,
+        csrf,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        samesite="lax",
+        path="/",
+    )
 
 
 def user_profile(user: User) -> dict:

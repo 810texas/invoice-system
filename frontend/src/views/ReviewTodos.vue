@@ -89,6 +89,19 @@
           </el-tag>
         </h4>
         <div class="ai-box">
+          <!-- 配置提醒放最前面。原先它夹在「尚未分析」与建议正文之间，导致下面那个 v-else
+               配对的是这条 alert 而不是 v-if="!ai"：一旦 alert 不显示、ai 仍是 null，
+               就会渲染建议正文并从 null 上读 ai.degraded 抛 TypeError，整个抽屉白掉。 -->
+          <el-alert
+            v-if="!aiStatus.is_mock && !aiStatus.api_key_configured"
+            type="error"
+            :closable="false"
+            show-icon
+            style="margin-bottom: 10px"
+            title="后端还没有读到 LLM_API_KEY"
+            description="请在 backend/.env 里填 LLM_API_KEY=你的Key，保存后重启后端（配置只在启动时读一次）。否则点「生成建议」只会得到规则摘要。"
+          />
+
           <!-- 尚未分析：不自动调用（每次打开抽屉都调模型会白花钱），要点一下 -->
           <div v-if="!ai" class="ai-empty">
             <span class="muted">尚未分析本单。</span>
@@ -97,14 +110,6 @@
             </el-button>
             <span class="muted">AI 只给参考意见，不会改变单据状态。</span>
           </div>
-          <el-alert
-            v-if="!aiStatus.is_mock && !aiStatus.api_key_configured"
-            type="error"
-            :closable="false"
-            show-icon
-            title="后端还没有读到 LLM_API_KEY"
-            description="请在 backend/.env 里填 LLM_API_KEY=你的Key，保存后重启后端（配置只在启动时读一次）。否则点「生成建议」只会得到规则摘要。"
-          />
 
           <div v-else v-loading="aiLoading">
             <el-alert

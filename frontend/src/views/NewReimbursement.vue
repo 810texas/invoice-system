@@ -378,6 +378,14 @@ async function preview() {
 
 async function submit() {
   if (!rid.value) return ElMessage.warning('请先创建草稿并上传发票')
+  // 费用类别必填（验收标准）：后端预审不拦这一项，所以在提交前挡一道，
+  // 否则「未填类别」的单据会一路走到财务。序号与表格行号一致（从 1 开始）。
+  const missing = invoices.value
+    .map((inv, index) => (inv.category ? null : index + 1))
+    .filter((index) => index !== null)
+  if (missing.length) {
+    return ElMessage.warning(`第 ${missing.join('、')} 张发票还没选「费用类别」，补全后再提交`)
+  }
   submitting.value = true
   try {
     const res = await api.submit(rid.value)

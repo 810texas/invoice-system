@@ -14,6 +14,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# 中文 Windows 控制台默认 GBK，下面要打印 ✓ / ✗，不切编码会直接
+# UnicodeEncodeError 崩掉（与其它 scripts/check_*.py 保持同一做法）。
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:  # 老版本 Python 或非标准输出流
+    pass
+
 from sqlalchemy import inspect
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
